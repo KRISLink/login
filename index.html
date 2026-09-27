@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>clickable lamp · on/off</title>
+  <style>
+    /* minimal reset & base */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #1e1e2f;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+      transition: background 0.3s;
+    }
+
+    /* when lamp is on, page background becomes lighter */
+    body.lamp-on {
+      background: #f0e9d8;
+    }
+
+    /* main wrapper – keeps lamp & hint stacked */
+    .lamp-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      user-select: none; /* prevent accidental text selection while clicking */
+    }
+
+    /* ---- LAMP GRAPHIC (pure CSS/HTML) ---- */
+    .lamp {
+      position: relative;
+      width: 220px;
+      height: 320px;
+      cursor: pointer;
+      transition: filter 0.2s, transform 0.1s;
+      /* soft glow when lamp is on (applied via parent class) */
+      filter: drop-shadow(0 0 0 transparent);
+    }
+
+    /* lightbulb base area */
+    .bulb-base {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 40px;
+      background: #6b5e4e;
+      border-radius: 12px 12px 8px 8px;
+      box-shadow: inset 0 -6px 0 #4a3f33, 0 8px 12px rgba(0,0,0,0.2);
+      z-index: 5;
+    }
+
+    /* the glass part – bulb shape */
+    .bulb-glass {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 130px;
+      height: 140px;
+      background: #ddd6cb;
+      border-radius: 50% 50% 40% 40% / 60% 60% 30% 30%;
+      box-shadow: inset 0 -10px 15px rgba(0,0,0,0.2), 0 0 0 2px #b8aa99;
+      transition: background 0.25s, box-shadow 0.25s, filter 0.25s;
+      z-index: 4;
+      overflow: hidden; /* keeps inner filament tidy */
+    }
+
+    /* filament – always visible inside, but glow changes */
+    .filament {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px;
+      height: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .filament span {
+      display: block;
+      width: 6px;
+      height: 40px;
+      background: #6b5e4e;
+      border-radius: 3px;
+      transition: background 0.25s, box-shadow 0.25s;
+    }
+
+    .filament span:nth-child(1) {
+      transform: rotate(-25deg) translateY(-5px);
+      margin-right: -12px;
+    }
+
+    .filament span:nth-child(2) {
+      transform: rotate(25deg) translateY(-5px);
+      margin-left: -12px;
+    }
+
+    /* the lamp shade – classic cone shape */
+    .lamp-shade {
+      position: absolute;
+      bottom: 150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 190px;
+      height: 110px;
+      background: #ccb79b;
+      background: linear-gradient(145deg, #dac9b2, #b8a287);
+      border-radius: 100px 100px 20px 20px / 80px 80px 20px 20px;
+      box-shadow: inset 0 8px 10px rgba(255, 255, 255, 0.4), inset 0 -6px 8px rgba(0, 0, 0, 0.2), 0 8px 12px rgba(0,0,0,0.3);
+      z-index: 3;
+      border-bottom: 4px solid #9b8a74;
+    }
+
+    /* inner shade reflection / light distribution – hidden until ON */
+    .lamp-shade::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 40px;
+      background: radial-gradient(circle at 50% 0%, #fff8e0, transparent 80%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      border-radius: 50%;
+      filter: blur(6px);
+      pointer-events: none;
+    }
+
+    /* neck / connector */
+    .lamp-neck {
+      position: absolute;
+      bottom: 130px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 40px;
+      background: #8a7a66;
+      background: linear-gradient(145deg, #9c8c78, #6e5f4e);
+      border-radius: 6px 6px 4px 4px;
+      box-shadow: inset 0 -4px 0 #4f4233;
+      z-index: 2;
+    }
+
+    /* ----- LAMP ON STATE (applied to .lamp.lamp-on) ----- */
+    .lamp.lamp-on .bulb-glass {
+      background: #fff3c9;
+      box-shadow: inset 0 -10px 20px rgba(255, 235, 140, 0.8), 0 0 30px 10px rgba(255, 220, 100, 0.7), 0 0 60px 20px rgba(255, 200, 50, 0.4);
+    }
+
+    .lamp.lamp-on .filament span {
+      background: #ffd966;
+      box-shadow: 0 0 12px 4px #ffbb33, 0 0 20px 8px #ffaa00;
+    }
+
+    .lamp.lamp-on .lamp-shade::after {
+      opacity: 0.9;
+    }
+
+    /* subtle hover effect – gives a tactile feel */
+    .lamp:hover {
+      transform: scale(1.01);
+    }
+
+    .lamp:active {
+      transform: scale(0.99);
+    }
+
+    /* ----- hint text ----- */
+    .hint {
+      color: #b9b1a4;
+      font-size: 1rem;
+      letter-spacing: 1px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 0.5rem 1.4rem;
+      border-radius: 40px;
+      backdrop-filter: blur(3px);
+      transition: color 0.2s, background 0.2s;
+      font-weight: 500;
+    }
+
+    body.lamp-on .hint {
+      color: #4a3f2e;
+      background: rgba(255, 245, 220, 0.7);
+      font-weight: 600;
+    }
+
+    /* small extra: accessibility outline */
+    .lamp:focus-visible {
+      outline: 3px solid #ffb347;
+      outline-offset: 6px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="lamp-wrapper">
+    <!-- clickable lamp – tabindex makes it focusable & accessible via keyboard (space/enter) -->
+    <div class="lamp" id="lamp" tabindex="0" role="button" aria-pressed="false" aria-label="clickable lamp, click to toggle on and off">
+      <!-- shade (top) -->
+      <div class="lamp-shade"></div>
+      <!-- neck -->
+      <div class="lamp-neck"></div>
+      <!-- glass bulb -->
+      <div class="bulb-glass">
+        <div class="filament">
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+      <!-- base -->
+      <div class="bulb-base"></div>
+    </div>
+
+    <div class="hint" id="hint">💡 click the lamp</div>
+  </div>
+
+  <script>
+    (function() {
+      const lamp = document.getElementById('lamp');
+      const body = document.body;
+      const hint = document.getElementById('hint');
+
+      // state: lamp is initially OFF (no class)
+      // Toggle function – flips lamp on/off and updates aria + hint
+      function toggleLamp() {
+        const isNowOn = lamp.classList.toggle('lamp-on');
+        // body class for background shift (optional but nice)
+        body.classList.toggle('lamp-on', isNowOn);
+
+        // update accessibility attribute
+        lamp.setAttribute('aria-pressed', isNowOn);
+
+        // update hint text
+        if (isNowOn) {
+          hint.textContent = '💡 lamp is ON — click to turn off';
+        } else {
+          hint.textContent = '💡 click the lamp';
+        }
+      }
+
+      // click event (primary interaction)
+      lamp.addEventListener('click', toggleLamp);
+
+      // keyboard support: Enter or Space toggles when lamp is focused
+      lamp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();  // prevent page scroll on space
+          toggleLamp();
+        }
+      });
+
+      // optional: prevent accidental double-tap zoom on mobile / but keep click natural
+      // (no extra handling needed)
+    })();
+  </script>
+</body>
+</html>
